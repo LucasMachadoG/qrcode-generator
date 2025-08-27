@@ -1,19 +1,20 @@
 package com.lucasgmachado.qrcode.generator.infra;
 
-import org.springframework.beans.factory.annotation.Value;
-
 import com.lucasgmachado.qrcode.generator.ports.StoragePort;
-
-import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
+@Component
 public class S3StorageAdapter implements StoragePort {
 
   private final S3Client s3Client;
   private final String bucketName;
   private final String region;
+
 
   public S3StorageAdapter(@Value("${aws.s3.region}") String region,
                           @Value("${aws.s3.bucket-name}") String bucketName) {
@@ -26,15 +27,17 @@ public class S3StorageAdapter implements StoragePort {
 
   @Override
   public String uploadFile(byte[] fileData, String fileName, String contentType) {
+    String key = "qr/" + (fileName.endsWith(".png") ? fileName : (fileName + ".png"));
+
     PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-            .bucket(bucketName)
-            .key(fileName)
-            .contentType(contentType)
-            .build();
+    .bucket(bucketName)
+    .key(key)
+    .contentType(contentType)
+    .build();
 
     s3Client.putObject(putObjectRequest, RequestBody.fromBytes(fileData));
 
     return String.format("https://%s.s3.%s.amazonaws.com/%s",
-            bucketName, region, fileName);
+    bucketName, region, key);
   }
 }
